@@ -1,5 +1,7 @@
 version: "3.9"
+
 services:
+
   lab-target:
     build:
       context: ./04_target_app
@@ -8,3 +10,33 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
     restart: unless-stopped
+    networks:
+      labnet:
+        ipv4_address: 172.20.0.10
+
+  webgoat:
+    image: webgoat/webgoat
+    container_name: agentic-webgoat
+    ports:
+      - "127.0.0.1:8081:8080"
+    restart: unless-stopped
+    networks:
+      labnet:
+        ipv4_address: 172.20.0.20
+
+  dvwa:
+    image: vulnerables/web-dvwa
+    container_name: agentic-dvwa
+    ports:
+      - "127.0.0.1:8082:80"
+    restart: unless-stopped
+    networks:
+      labnet:
+        ipv4_address: 172.20.0.30
+
+networks:
+  labnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24

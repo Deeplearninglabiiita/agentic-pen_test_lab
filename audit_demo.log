@@ -1,0 +1,8 @@
+{"timestamp": "2026-06-06T20:19:09.900985Z", "event_type": "SESSION_START", "severity": "INFO", "operator": "phd_lab", "scope": "localhost:8080"}
+{"timestamp": "2026-06-06T20:19:09.901270Z", "event_type": "TOOL_CALL", "severity": "INFO", "tool": "mock_port_scan", "target": "localhost", "result": "3 ports found"}
+{"timestamp": "2026-06-06T20:19:09.901406Z", "event_type": "PHASE_TRANSITION", "severity": "INFO", "from": "recon", "to": "enumeration", "iteration": 1}
+{"timestamp": "2026-06-06T20:19:09.901525Z", "event_type": "VULN_CONFIRMED", "severity": "WARNING", "type": "sql_injection", "cvss": 9.1, "endpoint": "/search"}
+{"timestamp": "2026-06-06T20:19:09.901629Z", "event_type": "HUMAN_DECISION", "severity": "WARNING", "decision": "approve_exploit", "operator": "dr_researcher"}
+{"timestamp": "2026-06-06T20:19:09.901746Z", "event_type": "EXPLOIT_ATTEMPT", "severity": "WARNING", "type": "sql_injection", "success": true}
+{"timestamp": "2026-06-06T20:19:09.901864Z", "event_type": "SCOPE_VIOLATION_ATTEMPT", "severity": "CRITICAL", "blocked_target": "google.com"}
+{"timestamp": "2026-06-06T20:19:09.901971Z", "event_type": "SESSION_END", "severity": "INFO", "findings": 4, "operator": "phd_lab"}
