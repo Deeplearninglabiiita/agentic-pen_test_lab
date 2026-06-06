@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  lab-target:
+    build:
+      context: ./04_target_app
+      dockerfile: Dockerfile
+    container_name: agentic-lab-target
+    ports:
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped
