@@ -34,7 +34,18 @@ def node_http_request(ctx):
     vuln_type = ctx["target_package"]["technique"]
     payload = ctx["selected_payload"]["payload"]
     print(f"\n  [n8n] HTTP request node: firing payload at {target}")
-    result = json.loads(mock_exploit.invoke({"target": target, "vuln_type": vuln_type, "payload": payload}))
+    # Call real_sqli_check with the correct endpoint
+    from shared.mock_tools import real_sqli_check
+    sqli_url = target.rstrip("/") + "/search?q="
+    result_raw = json.loads(real_sqli_check.invoke({"url": sqli_url}))
+    result = {
+        "target": target,
+        "vuln_type": vuln_type,
+        "payload": payload,
+        "success": result_raw.get("vulnerable", False),
+        "output": result_raw.get("evidence", ["No evidence"])[0] if result_raw.get("evidence") else "No output",
+        "note": "REAL HTTP request to lab target"
+    }
     print(f"        Success: {result['success']}")
     if result["success"]:
         print(f"        Output: {result['output'][:80]}...")

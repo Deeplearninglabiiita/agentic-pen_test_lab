@@ -25,14 +25,42 @@ services:
         ipv4_address: 172.20.0.20
 
   dvwa:
-    image: vulnerables/web-dvwa
+    image: ghcr.io/digininja/dvwa:latest
     container_name: agentic-dvwa
+    environment:
+      - DB_SERVER=172.20.0.35
+      - DB_PORT=3306
+      - DB_DATABASE=dvwa
+      - DB_USERNAME=dvwa
+      - DB_PASSWORD=p@ssw0rd
+      - DVWA_NO_RECAPTCHA=true
     ports:
       - "127.0.0.1:8082:80"
+    depends_on:
+      dvwa-db:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       labnet:
         ipv4_address: 172.20.0.30
+
+  dvwa-db:
+    image: mariadb:10
+    container_name: agentic-dvwa-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=dvwa_root
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "dvwa", "-pp@ssw0rd"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      labnet:
+        ipv4_address: 172.20.0.35
 
 networks:
   labnet:
