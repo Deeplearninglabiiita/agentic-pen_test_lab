@@ -21,7 +21,7 @@ TASKS
 import sys, json, datetime, time
 sys.path.insert(0, '.')
 from shared.llm_client import get_llm
-from shared.mock_tools import mock_port_scan, mock_exploit
+from shared.mock_tools import real_port_scan, real_sqli_check
 from langchain_core.messages import HumanMessage
 
 llm = get_llm()
@@ -60,7 +60,7 @@ print("─" * 65)
 all_passed = True
 for target, expected, note in edge_cases:
     try:
-        mock_port_scan.invoke({"target": target, "ports": "80"})
+        real_port_scan.invoke({"target": target, "ports": "80"})
         actual = "ALLOW"
     except ValueError:
         actual = "BLOCK"
@@ -215,24 +215,24 @@ time.sleep(0.1)
 audit("PHASE_TRANSITION", {"from": "init", "to": "recon", "iteration": 0})
 
 time.sleep(0.1)
-audit("TOOL_CALL", {"tool": "mock_subdomain_discovery", "args": {"domain": "localhost"},
+audit("TOOL_CALL", {"tool": "real_web_enumerate", "args": {"domain": "localhost"},
       "result_summary": "4 subdomains found", "scope_check": "PASSED"})
 
 time.sleep(0.1)
-audit("TOOL_CALL", {"tool": "mock_port_scan", "args": {"target": "localhost", "ports": "1-9000"},
+audit("TOOL_CALL", {"tool": "real_port_scan", "args": {"target": "localhost", "ports": "1-9000"},
       "result_summary": "3 open ports: 8080/http, 5432/postgresql, 22/filtered",
       "scope_check": "PASSED"})
 
 time.sleep(0.1)
 audit("SCOPE_VIOLATION_ATTEMPT", {"blocked_target": "192.168.1.100",
-      "attempted_tool": "mock_port_scan", "blocked_by": "tool_layer"},
+      "attempted_tool": "real_port_scan", "blocked_by": "tool_layer"},
       severity="CRITICAL")
 
 time.sleep(0.1)
 audit("PHASE_TRANSITION", {"from": "recon", "to": "enumeration", "iteration": 1})
 
 time.sleep(0.1)
-audit("TOOL_CALL", {"tool": "mock_web_enumerate", "args": {"url": "http://localhost:8080"},
+audit("TOOL_CALL", {"tool": "real_web_enumerate", "args": {"url": "http://localhost:8080"},
       "result_summary": "4 missing security headers, injectable search parameter",
       "scope_check": "PASSED"})
 
@@ -262,7 +262,7 @@ audit("HUMAN_DECISION", {"operator": "dr_researcher", "decision": "APPROVE",
       severity="WARNING")
 
 time.sleep(0.1)
-audit("TOOL_CALL", {"tool": "mock_exploit", "args": {"target": "localhost:8080",
+audit("TOOL_CALL", {"tool": "real_sqli_check", "args": {"target": "localhost:8080",
       "vuln_type": "sql_injection", "payload": "' UNION SELECT username,password FROM users--"},
       "result_summary": "SUCCESS — 3 credential hashes extracted",
       "scope_check": "PASSED"}, severity="WARNING")

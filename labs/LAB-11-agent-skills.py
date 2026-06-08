@@ -221,4 +221,118 @@ YOUR_SKILL_BODY = """
 - Attempt credential extraction from metadata
 
 ## Output template
-EOF
+
+CLOUD ASSESSMENT FINDINGS
+Account: [id] | Region: [region] | Tester: [name]
+
+EXPOSED STORAGE
+[bucket] | [permissions] | [sensitive data found]
+
+IAM MISCONFIGURATIONS
+[policy] | [excessive permission] | [escalation path]
+
+METADATA ENDPOINT
+[endpoint tested] | [IMDSv2 enforced: yes/no] | [credentials exposed: yes/no]
+
+REMEDIATION PRIORITY
+Critical: [list]
+High: [list]
+
+## Quality checks
+- [ ] Authorization confirmed
+- [ ] No production disruption
+- [ ] All findings have evidence
+- [ ] Remediation guidance specific to cloud provider
+"""
+
+# Write the skill to disk
+skill_dir = SKILLS_DIR / YOUR_SKILL_NAME
+skill_dir.mkdir(exist_ok=True)
+skill_file = skill_dir / "SKILL.md"
+
+skill_content = f"""---
+name: {YOUR_SKILL_NAME}
+description: >
+  {YOUR_SKILL_DESCRIPTION}
+---
+{YOUR_SKILL_BODY}"""
+
+skill_file.write_text(skill_content)
+print(f"Written: {skill_file}")
+
+# Test that it gets selected correctly
+updated_skills = [
+    d.name for d in SKILLS_DIR.iterdir()
+    if d.is_dir() and (d / "SKILL.md").exists()
+]
+print(f"\nSkills now available: {updated_skills}")
+
+cloud_test_requests = [
+    "Check our S3 buckets for public access misconfigurations",
+    "Test for SSRF to the AWS metadata endpoint",
+    "Assess our IAM policies for privilege escalation",
+    "Scan web server ports",
+]
+
+print("\nTesting selection of your new skill:")
+for req in cloud_test_requests:
+    selected = select_skill(req, updated_skills)
+    print(f"  {req[:55]}... -> {selected or 'none'}")
+
+
+# ─────────────────────────────────────────────────────────────
+# TASK 2: Run your new skill
+# ─────────────────────────────────────────────────────────────
+
+print(f"\n{DIVIDER}")
+print("TASK 2: Run your cloud assessment skill")
+print(DIVIDER)
+
+cloud_request = "Assess S3 bucket permissions and metadata endpoint exposure on our cloud infrastructure"
+print(f"Request: {cloud_request}")
+print(f"Skill: {YOUR_SKILL_NAME}\n")
+
+output = run_with_skill(cloud_request, YOUR_SKILL_NAME)
+print(output[:800])
+
+
+# ─────────────────────────────────────────────────────────────
+# TASK 3: Full skill pipeline
+# ─────────────────────────────────────────────────────────────
+
+print(f"\n{DIVIDER}")
+print("TASK 3: Full skill pipeline — complete engagement")
+print(DIVIDER)
+
+pipeline = [
+    ("pt-planning-recon",
+     "Plan and execute passive reconnaissance for localhost:8080"),
+    ("pt-scanning",
+     "Based on recon findings, perform layered vulnerability scanning"),
+    ("pt-gaining-access",
+     "SQL injection confirmed on /search endpoint — execute controlled exploitation"),
+]
+
+print("Running skill pipeline sequence:\n")
+for skill_name, task in pipeline:
+    print(f"{'─' * 40}")
+    print(f"[{skill_name}]")
+    print(f"Task: {task}")
+    output = run_with_skill(task, skill_name)
+    print(output[:400])
+    print()
+
+print(f"\n{DIVIDER}")
+print("PIPELINE COMPLETE")
+print(DIVIDER)
+print("""
+Key observations:
+1. Each skill enforces its own authorization check before proceeding
+2. Each skill produces a structured output template
+3. The output of each skill feeds naturally into the next
+4. The same SKILL.md works in Claude Code, Cursor, and this lab
+
+Research question: How would you measure skill effectiveness?
+What metrics would tell you a skill produces better outputs
+than a skill-free agent?
+""")

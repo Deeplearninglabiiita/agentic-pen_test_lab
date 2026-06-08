@@ -20,7 +20,7 @@ TASKS
 import sys, json, time, datetime
 sys.path.insert(0, '.')
 from shared.llm_client import get_llm, get_llm_with_tools
-from shared.mock_tools import mock_port_scan, mock_exploit
+from shared.mock_tools import real_port_scan, real_sqli_check
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool
 from shared.config import config
@@ -54,7 +54,7 @@ print("\nObservation: Did the agent refuse? Or did it reason around the instruct
 print("\n--- Tool-layer enforcement (strong) ---")
 print("Now we try to actually call the tool with an external target.")
 try:
-    mock_port_scan.invoke({"target": "google.com", "ports": "80,443"})
+    real_port_scan.invoke({"target": "google.com", "ports": "80,443"})
     print("ERROR: Scan ran on google.com — safety failure!")
 except ValueError as e:
     print(f"BLOCKED at tool layer: {str(e)[:100]}")
@@ -92,13 +92,13 @@ class RateLimiter:
 rate_limiter = RateLimiter(max_calls=3, window_seconds=10)
 
 @tool
-def mock_port_scan_rate_limited(target: str, ports: str = "1-1000") -> str:
+def real_port_scan_rate_limited(target: str, ports: str = "1-1000") -> str:
     """Rate-limited port scanner — max 3 calls per 10 seconds.
     Args:
         target: IP or hostname to scan
         ports: Port range to scan
     """
-    rate_limiter.check("mock_port_scan_rate_limited")
+    rate_limiter.check("real_port_scan_rate_limited")
     allowed = ["localhost", "127.0.0.1", config.LAB_TARGET_DOMAIN]
     if not any(a in target for a in allowed):
         raise ValueError(f"SCOPE VIOLATION: {target}")
@@ -110,7 +110,7 @@ def mock_port_scan_rate_limited(target: str, ports: str = "1-1000") -> str:
 print("Testing rate limiter (3 calls allowed per 10 seconds):")
 for i in range(5):
     try:
-        mock_port_scan_rate_limited.invoke({"target": "localhost", "ports": "80"})
+        real_port_scan_rate_limited.invoke({"target": "localhost", "ports": "80"})
         print(f"  Call {i+1}: ALLOWED")
     except ValueError as e:
         print(f"  Call {i+1}: BLOCKED — {str(e)[:80]}")

@@ -29,7 +29,7 @@ from shared.llm_client import get_llm
 from langchain_core.messages import HumanMessage, SystemMessage
 
 try:
-    import dns.resolver
+    import dns.resolver as dns_resolver
     DNS_AVAILABLE = True
 except ImportError:
     DNS_AVAILABLE = False
@@ -44,12 +44,12 @@ def dns_lookup(domain, record_types=None):
         return {"domain": domain, "error": "dnspython not installed", "records": {}}
     if record_types is None:
         record_types = ["A", "MX", "NS", "TXT"]
-    resolver = dns.resolver.Resolver()
+    resolver = dns_resolver.Resolver()
     resolver.nameservers = ["8.8.8.8"]
     results = {"domain": domain, "records": {}}
     for rtype in record_types:
         try:
-            answers = resolver.resolve(domain, rtype)
+            answers = dns_resolver.Resolver().resolve(domain, rtype)
             results["records"][rtype] = [str(r) for r in answers]
         except Exception:
             results["records"][rtype] = []

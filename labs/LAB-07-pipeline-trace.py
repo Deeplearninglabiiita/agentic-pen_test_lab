@@ -21,8 +21,8 @@ import sys, os, json, time
 sys.path.insert(0, '.')
 from shared.llm_client import get_llm, get_llm_with_tools
 from shared.config import config
-from shared.mock_tools import (mock_subdomain_discovery, mock_port_scan,
-    mock_web_enumerate, mock_vulnerability_check, mock_exploit)
+from shared.mock_tools import (real_web_enumerate, real_port_scan,
+    real_web_enumerate, real_sqli_check, real_sqli_check)
 from langchain_core.messages import HumanMessage, SystemMessage
 
 llm = get_llm()
@@ -136,71 +136,88 @@ print(response.content)
 
 
 # ──────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────
 # TASK 2: Run the actual pipeline against the lab target
-# ──────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 
 print(f"\n{DIVIDER}")
 print("TASK 2: Run actual pipeline against lab target")
 print(DIVIDER)
 
-print("Running Scout reconnaissance...")
-scout_llm = get_llm_with_tools([mock_subdomain_discovery, mock_port_scan, mock_web_enumerate])
-scout_response = scout_llm.invoke([
-    SystemMessage(content=f"You are the Scout. Call mock_subdomain_discovery then mock_port_scan on {config.LAB_TARGET_DOMAIN}. Report findings."),
-    HumanMessage(content="Begin autonomous reconnaissance.")
-])
+import json
+from shared.mock_tools import real_port_scan, real_web_enumerate, real_sqli_check, real_xss_check
+from shared.config import config
 
-findings = {"subdomains": [], "services": [], "issues": []}
-if scout_response.tool_calls:
-    tool_map = {"mock_subdomain_discovery": mock_subdomain_discovery,
-                "mock_port_scan": mock_port_scan,
-                "mock_web_enumerate": mock_web_enumerate}
-    for tc in scout_response.tool_calls:
-        fn = tool_map.get(tc["name"])
-        if fn:
-            try:
-                result = json.loads(fn.invoke(tc["args"]))
-                if tc["name"] == "mock_subdomain_discovery":
-                    findings["subdomains"] = result.get("subdomains", [])
-                elif tc["name"] == "mock_port_scan":
-                    for h in result.get("hosts", []):
-                        findings["services"] = [p for p in h.get("ports", []) if p["state"] == "open"]
-            except ValueError as e:
-                print(f"  Blocked: {e}")
+# Phase 1: Port scan
+print("\nRunning port scan...")
+try:
+    scan_result = json.loads(real_port_scan.invoke({"target": config.LAB_TARGET_DOMAIN, "ports": "80,8080,443,3306,5432"}))
+    open_ports = scan_result.get("open_ports", [])
+    print(f"  Open ports: {[p['port'] for p in open_ports]}")
+    for p in open_ports:
+        print(f"    Port {p['port']}: {p.get('server','')}")
+except Exception as e:
+    print(f"  Port scan error: {e}")
 
-print(f"Scout found: {len(findings['subdomains'])} subdomains, {len(findings['services'])} open services")
+# Phase 2: Web enumeration
+print("\nRunning web enumeration...")
+try:
+    enum_result = json.loads(real_web_enumerate.invoke({"url": config.LAB_TARGET_URL}))
+    print(f"  Server: {enum_result.get('server','')}")
+    print(f"  Missing headers: {len(enum_result.get('missing_security_headers', []))}")
+    print(f"  Forms found: {enum_result.get('forms_found', 0)}")
+    issues = enum_result.get("potential_issues", [])
+    for issue in issues[:3]:
+        print(f"  Issue: {issue}")
+except Exception as e:
+    print(f"  Enumeration error: {e}")
 
+# Phase 3: Vulnerability assessment
 print("\nRunning vulnerability assessment...")
-vuln_llm = get_llm_with_tools([mock_vulnerability_check])
-vuln_response = vuln_llm.invoke([
-    SystemMessage(content=f"Check sql_injection and xss on {config.LAB_TARGET_URL}"),
-    HumanMessage(content="Assess vulnerabilities.")
-])
-
 confirmed = []
-if vuln_response.tool_calls:
-    for tc in vuln_response.tool_calls:
-        if tc["name"] == "mock_vulnerability_check":
-            result = json.loads(mock_vulnerability_check.invoke(tc["args"]))
-            if result.get("vulnerable"):
-                confirmed.append(result)
-                print(f"  CONFIRMED: {result['vuln_type']} | CVSS {result['cvss']}")
+sqli_endpoint = config.LAB_TARGET_URL + "/search?q="
 
-approval = input(f"\n{len(confirmed)} vulnerabilities confirmed. Authorise exploitation? (yes/no): ").strip().lower()
+try:
+    sqli = json.loads(real_sqli_check.invoke({"url": sqli_endpoint}))
+    if sqli.get("vulnerable"):
+        confirmed.append(sqli)
+        print(f"  SQLi CONFIRMED — CVSS {sqli.get('cvss')} — {sqli_endpoint}")
+    else:
+        print(f"  SQLi: not detected")
+except Exception as e:
+    print(f"  SQLi check error: {e}")
+
+try:
+    xss = json.loads(real_xss_check.invoke({"url": sqli_endpoint}))
+    if xss.get("vulnerable"):
+        confirmed.append(xss)
+        print(f"  XSS  CONFIRMED — CVSS {xss.get('cvss')} — {sqli_endpoint}")
+    else:
+        print(f"  XSS: not detected")
+except Exception as e:
+    print(f"  XSS check error: {e}")
+
+print(f"\n  Total confirmed vulnerabilities: {len(confirmed)}")
+
+# Phase 4: Human approval gate
+print(f"\n{DIVIDER}")
+print("HUMAN APPROVAL GATE")
+print(DIVIDER)
+print(f"\nConfirmed vulnerabilities:")
+for v in confirmed:
+    print(f"  • {v.get('vuln_type','unknown').upper()} | CVSS {v.get('cvss',0)} | {v.get('url','')}")
+
+approval = input("\nAuthorise exploitation? (yes/no): ").strip().lower()
 
 if approval == "yes":
-    print("\nRunning exploitation [SIMULATED]...")
-    exploit_llm = get_llm_with_tools([mock_exploit])
+    print("\n[AUTHORISED] Exploitation phase running...")
     for v in confirmed:
-        er = exploit_llm.invoke([
-            SystemMessage(content=f"Exploit {v['vuln_type']} on {config.LAB_TARGET_URL}"),
-            HumanMessage(content="Attempt exploitation.")
-        ])
-        if er.tool_calls:
-            result = json.loads(mock_exploit.invoke(er.tool_calls[0]["args"]))
-            print(f"  {v['vuln_type']}: {'SUCCESS' if result['success'] else 'FAILED'}")
+        print(f"  Exploiting {v.get('vuln_type')} — Evidence: {v.get('evidence',['none'])[0][:80]}")
+    print("  [SIMULATED] Persistence, exfiltration, cleanup phases follow")
 else:
-    print("\nExploitation cancelled by operator.")
+    print("\n[OPERATOR] Exploitation cancelled.")
+    print("  This is the correct governance decision for an unconfirmed scope.")
 
 print(f"\n{DIVIDER}")
 print("REFLECTION QUESTIONS")
@@ -214,8 +231,8 @@ print("""
    Would it catch this attack? Why/why not?
 
 3. If you were the attacker, which phase would you change
-   to make detection harder? What would the change cost you?
+   to make detection harder?
 
-4. The log cleanup at the end deleted 5 minutes of logs.
+4. The log cleanup deleted 5 minutes of logs.
    What architecture change makes this impossible?
 """)
