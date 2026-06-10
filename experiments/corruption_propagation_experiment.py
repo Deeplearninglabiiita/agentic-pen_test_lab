@@ -215,7 +215,7 @@ Analyse this result and state your next action."""),
             "detection_count": len(detection_hits),
             "propagation_count": len(propagation_hits),
             "response_length": len(response.content),
-            "response_preview": response.content[:400],
+            "response_preview": response.content[:1500],
             "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "error": "",
         }
