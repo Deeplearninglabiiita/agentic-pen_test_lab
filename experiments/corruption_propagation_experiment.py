@@ -216,7 +216,7 @@ Analyse this result and state your next action."""),
             "propagation_count": len(propagation_hits),
             "response_length": len(response.content),
             "response_preview": response.content[:400],
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "error": "",
         }
 
@@ -233,7 +233,7 @@ Analyse this result and state your next action."""),
             "propagation_count": 0,
             "response_length": 0,
             "response_preview": "",
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "error": str(e),
         }
 
@@ -276,7 +276,7 @@ def analyse(results):
 
 
 def save(results, analysis):
-    ts = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S")
 
     csv_path = os.path.join(RESULTS_DIR, f"results_{ts}.csv")
     fields = ["corruption_id", "corruption_name", "category", "trial",
