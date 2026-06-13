@@ -174,20 +174,20 @@ for name, q in queries_to_run:
     })
     print(f"  {name}: {r.get('total', 0)} exposed globally")
 
-response = llm.invoke([HumanMessage(content=f"""You are a CISO reviewing Shodan exposure data.
 
-Findings:
-{json.dumps(all_findings, indent=2)}
+# Summarise counts only to stay under Groq 100K token limit
+risk_summary = [
+    {"category": f["category"], "total_exposed": f["total_exposed"]}
+    for f in all_findings
+]
 
-Produce a prioritised risk report:
-1. Rank these three exposure types by risk (Critical/High/Medium/Low)
-2. For each: attacker effort required, potential impact, detection difficulty
-3. Which would you fix first with a 40-hour engineering budget?
-4. What metric would you use to track remediation progress?""")])
-print(f"\n{response.content}")
-
-
-# ──────────────────────────────────────────────────────────────
+response = llm.invoke([HumanMessage(content=(
+    "You are a CISO reviewing Shodan exposure data. "
+    "Rank these three exposure types by risk (Critical/High/Medium/Low). "
+    "For each give: business impact, exploitation likelihood, recommended action.\n\n"
+    f"Data: {json.dumps(risk_summary, indent=2)}"
+))])
+print(response.content)
 # TASK 3: Attacker's view of your institution
 # Search Shodan for your own institution's IP range
 # ──────────────────────────────────────────────────────────────
