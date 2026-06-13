@@ -320,3 +320,52 @@ if __name__ == '__main__':
     print("Lab Control Panel running at http://localhost:5000")
     print("All targets scoped to 172.20.0.0/24 — no external access")
     app.run(host='0.0.0.0', port=5000, debug=False)
+
+@app.route('/run_lab_by_number', methods=['POST'])
+def run_lab_by_number():
+    data = request.json
+    lab_num = int(data.get('lab_number', 3))
+    
+    # Map lab numbers to files
+    lab_files = {
+        1:  'labs/LAB-01-fundamentals.py',
+        2:  'labs/LAB-02-cognitive-loop.py',
+        3:  'labs/LAB-03-react.py',
+        4:  'labs/LAB-04-rag.py',
+        5:  'labs/LAB-05-shodan.py',
+        6:  'labs/LAB-06-passive-recon.py',
+        7:  'labs/LAB-07-pipeline-trace.py',
+        8:  'labs/LAB-08-agent-custom.py',
+        9:  'labs/LAB-09-governance.py',
+        10: 'labs/LAB-10-research.py',
+        11: 'labs/LAB-11-agent-skills.py',
+        12: 'labs/LAB-12-reporting.py',
+        13: 'labs/LAB-13-scope-audit.py',
+        14: 'labs/LAB-14-hitl-extended.py',
+    }
+    
+    if lab_num not in lab_files:
+        return jsonify({'error': f'Lab {lab_num} not found'})
+    
+    lab_file = lab_files[lab_num]
+    
+    if not os.path.exists(lab_file):
+        return jsonify({'error': f'File not found: {lab_file}'})
+    
+    try:
+        env = os.environ.copy()
+        env['LLM_MODEL'] = data.get('model', 'llama-3.3-70b-versatile')
+        if data.get('target'):
+            env['LAB_TARGET'] = data['target']
+        
+        result = subprocess.run(
+            ['python', lab_file],
+            capture_output=True, text=True,
+            timeout=180, env=env
+        )
+        output = result.stdout or result.stderr
+        return jsonify({'output': output[:8000]})
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Lab timeout after 180 seconds'})
+    except Exception as e:
+        return jsonify({'error': str(e)})
