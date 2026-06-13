@@ -78,7 +78,7 @@ print(DIVIDER)
 # one plausible malicious explanation
 YOUR_ALERT = """Alert: Machine learning training job on GPU cluster ran for 
 18 hours and transferred 890 GB to external S3 bucket 
-s3://ml-results-2024-backup. User: dr_chen. 
+s3://ml-results-2024-backup. User: dr_sharma. 
 No job ticket exists in the work management system."""
 
 run_cognitive_loop(YOUR_ALERT)
