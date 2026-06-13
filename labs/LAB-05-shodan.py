@@ -50,7 +50,7 @@ def shodan_query(query, limit=5):
             "total": 1247,
             "query": query,
             "matches": [
-                {"ip_str": "x.x.x.1", "port": 5000, "org": "University of Example",
+                {"ip_str": "x.x.x.1", "port": 5000, "org": "Kanpur University",
                  "product": "Werkzeug httpd", "version": "2.3.0",
                  "location": {"country_name": "United Kingdom"},
                  "vulns": {"CVE-2024-001": {"cvss": 7.5}},
