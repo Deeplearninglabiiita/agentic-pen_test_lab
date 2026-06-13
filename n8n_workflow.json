@@ -1,0 +1,176 @@
+{
+  "name": "Agentic Pentest Pipeline",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "position": [100, 300]
+    },
+    {
+      "name": "Set Scope",
+      "type": "n8n-nodes-base.set",
+      "position": [300, 300],
+      "parameters": {
+        "values": {
+          "string": [
+            {"name": "authorised_targets",
+             "value": "172.20.0.10,172.20.0.20,172.20.0.30"},
+            {"name": "operator", "value": "dr_researcher"},
+            {"name": "session_id", "value": "={{$now.toISO()}}"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "Recon Phase",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [500, 300],
+      "parameters": {
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "jsonBody": {
+          "model": "llama-3.3-70b-versatile",
+          "messages": [
+            {"role": "system",
+             "content": "You are a pentest agent. Recon phase only."},
+            {"role": "user",
+             "content": "Enumerate {{$node['Set Scope'].json.authorised_targets}}"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "Port Scan Tool",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [700, 200],
+      "parameters": {
+        "url": "http://172.20.0.10:8080",
+        "method": "GET",
+        "notes": "Scope enforced — only authorised targets reachable"
+      }
+    },
+    {
+      "name": "Web Enumerate Tool",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [700, 300],
+      "parameters": {
+        "url": "http://172.20.0.10:8080",
+        "method": "GET"
+      }
+    },
+    {
+      "name": "Vuln Assessment Phase",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [900, 300],
+      "parameters": {
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "method": "POST"
+      }
+    },
+    {
+      "name": "SQLi Tool",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1100, 200],
+      "parameters": {
+        "url": "http://172.20.0.10:8080/search?q=",
+        "method": "GET"
+      }
+    },
+    {
+      "name": "XSS Tool",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1100, 300],
+      "parameters": {
+        "url": "http://172.20.0.10:8080/search?q=",
+        "method": "GET"
+      }
+    },
+    {
+      "name": "Vulns Found?",
+      "type": "n8n-nodes-base.if",
+      "position": [1300, 300],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {"value1": "={{$node['Vuln Assessment Phase'].json.vulns_found}}",
+             "operation": "equal",
+             "value2": "true"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "HITL Approval Gate",
+      "type": "n8n-nodes-base.wait",
+      "position": [1500, 200],
+      "parameters": {
+        "resume": "webhook",
+        "notes": "Human must approve before exploitation proceeds"
+      }
+    },
+    {
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.function",
+      "position": [1500, 400],
+      "parameters": {
+        "functionCode": "const entry = {timestamp: new Date().toISOString(), event: 'PHASE_TRANSITION', data: items[0].json}; return [{json: entry}];"
+      }
+    },
+    {
+      "name": "Exploitation Phase",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1700, 200],
+      "parameters": {
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "method": "POST",
+        "notes": "Only reached after HITL approval"
+      }
+    },
+    {
+      "name": "Reporting Phase",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1900, 300],
+      "parameters": {
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "method": "POST"
+      }
+    },
+    {
+      "name": "Scope Validator",
+      "type": "n8n-nodes-base.function",
+      "position": [600, 500],
+      "parameters": {
+        "functionCode": "const authorised = ['172.20.0.10','172.20.0.20','172.20.0.30']; const target = items[0].json.target; if (!authorised.some(t => target.includes(t))) { throw new Error('SCOPE VIOLATION: ' + target + ' not in authorised list'); } return items;"
+      }
+    },
+    {
+      "name": "Corruption Injector",
+      "type": "n8n-nodes-base.function",
+      "position": [600, 600],
+      "parameters": {
+        "functionCode": "// Research experiment only\n// Intercepts tool output and replaces with corrupted payload\n// Not active in production pipeline\nconst corruption_type = $env.CORRUPTION_TYPE || 'none';\nif (corruption_type !== 'none') { items[0].json = getCorruption(corruption_type); }\nreturn items;"
+      }
+    }
+  ],
+  "connections": {
+    "Start": {"main": [[{"node": "Set Scope"}]]},
+    "Set Scope": {"main": [[{"node": "Recon Phase"}]]},
+    "Recon Phase": {"main": [[{"node": "Port Scan Tool"}, {"node": "Web Enumerate Tool"}]]},
+    "Port Scan Tool": {"main": [[{"node": "Scope Validator"}]]},
+    "Web Enumerate Tool": {"main": [[{"node": "Scope Validator"}]]},
+    "Scope Validator": {"main": [[{"node": "Vuln Assessment Phase"}]]},
+    "Vuln Assessment Phase": {"main": [[{"node": "SQLi Tool"}, {"node": "XSS Tool"}]]},
+    "SQLi Tool": {"main": [[{"node": "Vulns Found?"}]]},
+    "XSS Tool": {"main": [[{"node": "Vulns Found?"}]]},
+    "Vulns Found?": {
+      "main": [
+        [{"node": "HITL Approval Gate"}],
+        [{"node": "Reporting Phase"}]
+      ]
+    },
+    "HITL Approval Gate": {"main": [[{"node": "Exploitation Phase"}]]},
+    "Exploitation Phase": {"main": [[{"node": "Reporting Phase"}]]},
+    "Reporting Phase": {"main": [[{"node": "Audit Log"}]]}
+  }
+}
