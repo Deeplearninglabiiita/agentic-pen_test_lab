@@ -1,3 +1,4 @@
+import os
 """
 LAB-05: Real Shodan OSINT Agent
 =================================
@@ -90,7 +91,7 @@ print(f"\n{DIVIDER}")
 print("EXERCISE 1: Finding exposed Flask debug mode via Shodan")
 print(DIVIDER)
 
-query = 'product:"Werkzeug httpd" "Werkzeug Debugger"'
+query = os.environ.get("SHODAN_QUERY_OVERRIDE", 'product:"Werkzeug httpd" "Werkzeug Debugger"')
 results = shodan_query(query, limit=3)
 
 print(f"Query: {query}")
