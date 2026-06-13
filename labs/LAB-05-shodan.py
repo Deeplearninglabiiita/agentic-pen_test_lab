@@ -201,7 +201,7 @@ print(DIVIDER)
 # Example: 'org:"University of Manchester"'
 # Example: 'net:192.168.0.0/24' (use your actual range)
 
-YOUR_INSTITUTION_QUERY = 'org:"University of Example"'
+YOUR_INSTITUTION_QUERY = 'org:"Kanpur University"'
 
 print(f"Searching Shodan for: {YOUR_INSTITUTION_QUERY}")
 print("(Replace with your actual institution name or IP range)")
