@@ -139,8 +139,16 @@ for m in results.get("matches", [])[:3]:
     vulns = list(m.get("vulns", {}).keys())
     print(f"  {m['ip_str']}:{m['port']} | {m.get('org','')} | CVEs: {vulns}")
 
-response = llm.invoke([HumanMessage(content=f"""Analyse these exposed database results:
-{json.dumps(results, indent=2)}
+# Summarise to avoid token limit
+summary = {
+    "total_exposed": results.get("total", 0),
+    "sample_ips": [
+        f"{m.get('ip_str')}:{m.get('port')} | {m.get('org','unknown')}"
+        for m in results.get("matches", [])[:3]
+    ]
+}
+response = llm.invoke([HumanMessage(content=f"""Analyse these exposed PostgreSQL databases:
+{json.dumps(summary, indent=2)}
 
 From an attacker's perspective: what is the value of finding these?
 From a defender's perspective: why are these exposed and what is the fix?
@@ -202,7 +210,7 @@ print(DIVIDER)
 # Example: 'org:"University of Manchester"'
 # Example: 'net:192.168.0.0/24' (use your actual range)
 
-YOUR_INSTITUTION_QUERY = 'org:"Kanpur University"'
+YOUR_INSTITUTION_QUERY = os.environ.get("SHODAN_INSTITUTION", 'org:"Kanpur University"')
 
 print(f"Searching Shodan for: {YOUR_INSTITUTION_QUERY}")
 print("(Replace with your actual institution name or IP range)")
@@ -211,16 +219,23 @@ results = shodan_query(YOUR_INSTITUTION_QUERY, limit=5)
 print(f"Total exposed services found: {results.get('total', 0)}")
 
 if results.get("matches"):
-    response = llm.invoke([HumanMessage(content=f"""An attacker has run Shodan on your institution.
-Results:
-{json.dumps(results, indent=2)}
-
-Write a short attack planning document FROM THE ATTACKER'S PERSPECTIVE:
-- Most valuable entry points
-- Estimated time to initial access
-- Estimated time to sensitive data
-- What defences might be in place (infer from the data)
-Then flip perspective: what should the defender do THIS WEEK?""")])
+    summary = {
+        "total_exposed": results.get("total", 0),
+        "sample": [
+            f"{m.get('ip_str')}:{m.get('port')} | {m.get('org','unknown')}"
+            for m in results.get("matches", [])[:5]
+        ]
+    }
+    response = llm.invoke([HumanMessage(content=
+        "An attacker has run Shodan on your institution. "
+        "Results: " + json.dumps(summary) + "\n\n"
+        "Write a short attack planning document FROM THE ATTACKER'S PERSPECTIVE:\n"
+        "- Most valuable entry points\n"
+        "- Estimated time to initial access\n"
+        "- Estimated time to sensitive data\n"
+        "- What defences might be in place\n"
+        "Then flip perspective: what should the defender do THIS WEEK?"
+    )])
     print(response.content)
 else:
-    print("No results found (or simulated mode). Try a different search term.")
+    print("No results found. Try a different institution name.")
