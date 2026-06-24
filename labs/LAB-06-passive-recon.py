@@ -117,7 +117,10 @@ print(f"\n{DIVIDER}")
 print("EXERCISE 1: Passive recon on python.org (safe public target)")
 print(DIVIDER)
 
-recon_data = full_passive_recon("python.org")
+import os
+GUI_DOMAIN = os.environ.get("GUI_INPUT_RECON_DOMAIN", "").strip()
+EX1_TARGET = GUI_DOMAIN if GUI_DOMAIN else "python.org"
+recon_data = full_passive_recon(EX1_TARGET)
 
 # Show raw data summary
 dns = recon_data["dns"]["records"]
@@ -166,7 +169,7 @@ print(DIVIDER)
 # - An open-source project domain
 # DO NOT use private companies without permission
 
-YOUR_TARGET = "example.com"
+YOUR_TARGET = GUI_DOMAIN if GUI_DOMAIN else "example.com"
 
 print(f"Target: {YOUR_TARGET}")
 your_recon = full_passive_recon(YOUR_TARGET)
@@ -193,8 +196,8 @@ print("TASK 2: Compare two organisations (passive data only)")
 print(DIVIDER)
 
 # Two public domains to compare
-DOMAIN_A = "apache.org"
-DOMAIN_B = "nginx.org"
+DOMAIN_A = os.environ.get("GUI_INPUT_COMPARE_A", "apache.org").strip()
+DOMAIN_B = os.environ.get("GUI_INPUT_COMPARE_B", "nginx.org").strip()
 
 print(f"Comparing {DOMAIN_A} vs {DOMAIN_B}...")
 

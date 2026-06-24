@@ -1,3 +1,4 @@
+from shared.gui_input import gui_input
 """
 LAB-14: Human-in-the-Loop — Extended Governance
 =================================================
@@ -112,7 +113,7 @@ print("  [x] Written authorisation covers target")
 print("  [x] Test window is active")
 print("  [x] Rollback plan confirmed")
 
-decision = input("\nApprove exploitation? (yes/no): ").strip().lower()
+decision = gui_input("\nApprove exploitation? (yes/no): ").strip().lower()
 
 if decision == "yes":
     print("\n[HITL] Approved. Resuming...")
@@ -142,12 +143,12 @@ cfg2 = {"configurable": {"thread_id": "lab14-task1"}}
 stream_until_pause(agent2, make_initial_state(), cfg2)
 show_vuln_summary(agent2, cfg2)
 
-d1 = input("\nApprove exploitation phase? (yes/no): ").strip().lower()
+d1 = gui_input("\nApprove exploitation phase? (yes/no): ").strip().lower()
 if d1 == "yes":
     stream_until_pause(agent2, None, cfg2)
     print("\n[HITL] Agent paused again — wants to generate report.")
     print("  Operator must approve report content before release.")
-    d2 = input("Approve report generation? (yes/no): ").strip().lower()
+    d2 = gui_input("Approve report generation? (yes/no): ").strip().lower()
     if d2 == "yes":
         stream_until_pause(agent2, None, cfg2)
         final2 = agent2.get_state(cfg2)
@@ -172,7 +173,7 @@ print(DIVIDER)
 def timed_input(prompt: str, timeout: int = 30) -> str:
     result = [None]
     def get_input():
-        result[0] = input(prompt).strip().lower()
+        result[0] = gui_input(prompt).strip().lower()
     t = threading.Thread(target=get_input, daemon=True)
     t.start()
     t.join(timeout=timeout)

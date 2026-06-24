@@ -1,3 +1,4 @@
+from shared.gui_input import gui_input
 """
 LAB-07: Tracing the Full Attack Pipeline
 ==========================================
@@ -208,7 +209,7 @@ print(f"\nConfirmed vulnerabilities:")
 for v in confirmed:
     print(f"  • {v.get('vuln_type','unknown').upper()} | CVSS {v.get('cvss',0)} | {v.get('url','')}")
 
-approval = input("\nAuthorise exploitation? (yes/no): ").strip().lower()
+approval = gui_input("\nAuthorise exploitation? (yes/no): ").strip().lower()
 
 if approval == "yes":
     print("\n[AUTHORISED] Exploitation phase running...")

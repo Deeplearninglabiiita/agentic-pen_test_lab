@@ -97,9 +97,23 @@ if __name__ == "__main__":
     print("Lab 1b: Cobalt Flow Breacher (n8n Pipeline Simulation)")
     print("Chapter 8, pp. 4-7 — all nodes simulated, no real exploitation")
     print(DIVIDER)
+
+    # Read inputs from GUI environment variables
+    ALLOWED_TARGETS = {
+        "Flask Lab Target": config.LAB_TARGET_URL,
+        "WebGoat":          config.WEBGOAT_URL,
+        "DVWA":             config.DVWA_URL,
+    }
+    GUI_TARGET  = os.environ.get("GUI_BREACHER_TARGET", "Flask Lab Target").strip()
+    GUI_TECHNIQUE = os.environ.get("GUI_BREACHER_TECHNIQUE", "sql_injection").strip()
+
+    entry_url = ALLOWED_TARGETS.get(GUI_TARGET, config.LAB_TARGET_URL)
+    print(f"Breacher target   : {entry_url}")
+    print(f"Breacher technique: {GUI_TECHNIQUE}")
+
     pkg = {
-        "entry_point": config.LAB_TARGET_URL,
-        "technique": "sql_injection",
+        "entry_point": entry_url,
+        "technique": GUI_TECHNIQUE,
         "services": [{"port": 8080, "service": "http", "product": "Werkzeug", "version": "2.3.0"}],
         "subdomains": [{"subdomain": "dev-api.localhost", "status": 200}],
         "scout_confidence": "HIGH",

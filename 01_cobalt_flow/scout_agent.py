@@ -18,6 +18,26 @@ real_xss_check = next(t for t in ALL_REAL_TOOLS if t.name == 'real_xss_check')
 DIVIDER = "=" * 60
 SCOUT_TOOLS = [real_port_scan, real_web_enumerate]
 
+# ── Read inputs from GUI environment variables ─────────────────
+ALLOWED_TARGETS = {
+    "Flask Lab Target": (config.LAB_TARGET_URL, config.LAB_TARGET_DOMAIN),
+    "WebGoat":          (config.WEBGOAT_URL,     config.WEBGOAT_IP),
+    "DVWA":             (config.DVWA_URL,         config.DVWA_IP),
+}
+GUI_TARGET_NAME = os.environ.get("GUI_SCOUT_TARGET", "").strip()
+GUI_OBJECTIVE   = os.environ.get("GUI_SCOUT_OBJECTIVE", "").strip()
+
+if GUI_TARGET_NAME in ALLOWED_TARGETS:
+    TARGET_URL, TARGET_DOMAIN = ALLOWED_TARGETS[GUI_TARGET_NAME]
+else:
+    TARGET_URL, TARGET_DOMAIN = config.LAB_TARGET_URL, config.LAB_TARGET_DOMAIN
+
+OBJECTIVE = GUI_OBJECTIVE or "Identify exploitable entry points and assess attack surface"
+
+print(f"Scout target : {TARGET_URL}")
+print(f"Scout domain : {TARGET_DOMAIN}")
+print(f"Objective    : {OBJECTIVE}")
+
 class ScoutState(TypedDict):
     target_url: str
     services: Annotated[List[dict], operator.add]
@@ -26,13 +46,14 @@ class ScoutState(TypedDict):
     target_package: Optional[dict]
     messages: Annotated[List, operator.add]
     iteration: int
+    objective: str
 
 def port_scan_node(state: ScoutState) -> ScoutState:
     print(f"\n[SCOUT] Phase 1: Port scan on {state['target_url']}")
     llm = get_llm_with_tools(SCOUT_TOOLS)
     response = llm.invoke([
-        SystemMessage(content="You are the Scout agent. Call real_port_scan on the target IP. Stay methodical."),
-        HumanMessage(content=f"Scan ports on {config.LAB_TARGET_DOMAIN}")
+        SystemMessage(content=f"You are the Scout agent. Objective: {OBJECTIVE}. Call real_port_scan on the target IP. Stay methodical."),
+        HumanMessage(content=f"Scan ports on {TARGET_DOMAIN}")
     ])
     services = []
     if response.tool_calls:
@@ -85,6 +106,7 @@ def decision_node(state: ScoutState) -> ScoutState:
         "technique": decision.get("technique", "sql_injection"),
         "services": state["services"],
         "scout_confidence": "HIGH",
+        "objective": OBJECTIVE,
     } if decision.get("exploit") else None
 
     return {**state, "target_package": pkg, "recon_complete": True,
@@ -118,14 +140,16 @@ def build_scout_graph():
 if __name__ == "__main__":
     print(DIVIDER)
     print("Lab 1: Cobalt Flow Scout Agent — Chapter 8 pp. 4-7")
-    print(f"Target: {config.LAB_TARGET_URL}")
+    print(f"Target   : {TARGET_URL}")
+    print(f"Objective: {OBJECTIVE}")
     print(DIVIDER)
     scout = build_scout_graph()
     final = scout.invoke({
-        "target_url": config.LAB_TARGET_URL,
+        "target_url": TARGET_URL,
         "services": [], "entry_point": None,
         "recon_complete": False, "target_package": None,
         "messages": [], "iteration": 0,
+        "objective": OBJECTIVE,
     })
     print(f"\n{DIVIDER}")
     if final.get("target_package"):

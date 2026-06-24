@@ -74,7 +74,8 @@ if __name__ == "__main__":
     print("  [x] Defined test window confirmed")
     print("  [x] Rollback plan in place")
 
-    approval = input("\nProceed with exploitation? (yes/no): ").strip().lower()
+    from shared.gui_input import gui_input
+approval = gui_input("\nProceed with exploitation? (yes/no): ").strip().lower()
 
     if approval == "yes":
         print("\n[HITL] Approval granted. Resuming...")
